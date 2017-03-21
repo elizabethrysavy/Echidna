@@ -1,0 +1,3 @@
+[submodule "PulseSensor"]
+	path = PulseSensor
+	url = git@github.com:pierfier/PulseSensor_Amped_Arduino.git
