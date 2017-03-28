@@ -1,3 +1,6 @@
+#include <StackArray.h>
+#include <CurieIMU.h>
+
 //set pin numbers:
 const int power = 1;   //pin number for power switch
 const int cancel = 2; //pin number for alarm cancel button
@@ -13,6 +16,9 @@ int switchState;
 int buttonState;
 const int x = 5; /*MIGHT NEED TO CHANGE THIS VALUE*/
 int cc;
+int prevTime;
+unsigned long loopTime = 0;          // get the time since program started
+unsigned long interruptsTime = 0;    // get the time when free fall event is detected
 
 void setup() {
   //initialize inputs and outputs
@@ -25,8 +31,20 @@ void setup() {
   criticalCount = 0;
   digitalWrite(criticalLED, LOW);
   digitalWrite(buzzer, LOW);
-  cc = (x*pow(10, -6))/30; 
+  cc = (x * pow(10, -6)) / 30;
+  prevTime = micros();
 
+  Serial.begin(9600); // initialize Serial communication
+  while (!Serial) ;   // wait for serial port to connect.
+
+  /* Initialise the IMU */
+  CurieIMU.begin();
+  CurieIMU.attachInterrupt(eventCallback);
+
+  /* Enable Free Fall Detection */
+  CurieIMU.setDetectionThreshold(CURIE_IMU_FREEFALL, 1000); // 1g=1000mg
+  CurieIMU.setDetectionDuration(CURIE_IMU_FREEFALL, 50);  // 50ms
+  CurieIMU.interrupts(CURIE_IMU_FREEFALL);
 }
 
 void loop() {
@@ -40,7 +58,7 @@ void loop() {
   int temp = readTempSensor(); /*MAKE SURE OUTPUT TYPE AND INPUTS ARE SAME AS FUNCTION*/
   detectFall();
   if (isCritical(heart, temp) == HIGH) {
-    criticalCount++; 
+    criticalCount++;
   }
   else {
     criticalCount = 0;
@@ -48,16 +66,16 @@ void loop() {
   if (criticalCount == cc) {
     emergencyProcedure();
   }
-  
+
   delayMicroseconds(x); //wait a short amount of time before reading sensors again
 
 }
 
 int readHeartMonitor() {/*MIGHT NEED TO CHANGE OUTPUT TYPE AND POSSIBLY ADD INPUTS*/
   /*
-   * Pop oldest value out of list, push on new value, calculate heart rate from values in list
-   */
-   
+     Pop oldest value out of list, push on new value, calculate heart rate from values in list
+  */
+
 }
 
 int readTempSensor() { /*MIGHT NEED TO CHANGE OUTPUT TYPE AND POSSIBLY ADD INPUTS*/
@@ -65,10 +83,10 @@ int readTempSensor() { /*MIGHT NEED TO CHANGE OUTPUT TYPE AND POSSIBLY ADD INPUT
 }
 
 bool isCritical(int heart, int temp) { /*CHANGE DATA TYPES TO MATCH OTHERS*/
-  if (heart < 40 or heart > 220){
+  if (heart < 40 or heart > 220) {
     return HIGH;
   }
-  if(temp){ /*FIX THIS STATEMENT FOR CRITICAL TEMPS*/
+  if (temp) { /*FIX THIS STATEMENT FOR CRITICAL TEMPS*/
     return HIGH;
   }
   else return LOW;
@@ -76,11 +94,28 @@ bool isCritical(int heart, int temp) { /*CHANGE DATA TYPES TO MATCH OTHERS*/
 
 bool detectFall() { //read accelerometer to detect fall
   /*
-   * https://www.arduino.cc/en/Tutorial/Genuino101CurieIMUOrientationVisualiser
-   * https://www.cs.virginia.edu/~stankovic/psfiles/bsn09-1.pdf
-   */
-  //if fall detected
-  critical();
+     https://www.arduino.cc/en/Tutorial/Genuino101CurieIMUOrientationVisualiser
+     https://www.cs.virginia.edu/~stankovic/psfiles/bsn09-1.pdf
+  */
+
+  //detect freefall
+  loopTime = millis();
+  if (abs(loopTime - interruptsTime) < 1000 )
+    critical();
+  
+  //if shock detected
+  if (CurieIMU.shockDetected() == HIGH) {
+    critical();
+  }
+  else
+    return LOW;
+}
+
+static void eventCallback() {
+  if (CurieIMU.getInterruptStatus(CURIE_IMU_FREEFALL)) {
+    Serial.println("free fall detected! ");
+    interruptsTime = millis();
+  }
 }
 
 void critical() {
@@ -91,7 +126,7 @@ void critical() {
   while (millis() - startTime < (WAIT_TIME * 1000)) {
     /*MIGHT NEED TO IMPLEMENT BUTTON DEBOUNCING*/
     buttonState = digitalRead(cancel);
-    
+
     if (buttonState == HIGH) { //if person indicates they are okay
       digitalWrite(criticalLED, LOW); //turn of LED and buzzer
       digitalWrite(buzzer, LOW);
