@@ -94,19 +94,16 @@ bool isCritical(int heart, int temp) { /*CHANGE DATA TYPES TO MATCH OTHERS*/
 
 bool detectFall() { //read accelerometer to detect fall
   /*
+   * MIGHT NEED THIS IF OTHER THING DOESN'T WORK
      https://www.arduino.cc/en/Tutorial/Genuino101CurieIMUOrientationVisualiser
      https://www.cs.virginia.edu/~stankovic/psfiles/bsn09-1.pdf
+     MIGHT ALSO USE CURIEIMU SHOCK DETECTED FUNCTION
   */
-
   //detect freefall
   loopTime = millis();
   if (abs(loopTime - interruptsTime) < 1000 )
     critical();
-  
-  //if shock detected
-  if (CurieIMU.shockDetected() == HIGH) {
-    critical();
-  }
+
   else
     return LOW;
 }
