@@ -1,16 +1,18 @@
 //set pin numbers:
-const int power = ;   //pin number for power switch
-const int cancel = ; //pin number for alarm cancel button
-const int criticalLED = ; //pin number for LED for critical warning
-const int buzzer = ; //pin number for buzzer
+const int power = 1;   //pin number for power switch
+const int cancel = 2; //pin number for alarm cancel button
+const int criticalLED = 3; //pin number for LED for critical warning
+const int buzzer = 4; //pin number for buzzer
 const int pulseSensor = 13; //pin number for pulse sensor
 const int tempSensor = A0; //pin number for temperature sensor
 
 //global variables
 int criticalCount;
-const int WAIT_TIME = ; //time to push cancel button after sensors read as critical
+const int WAIT_TIME = 45; //seconds to push cancel button after sensors read as critical
 int switchState;
 int buttonState;
+const int x = 5; /*MIGHT NEED TO CHANGE THIS VALUE*/
+int cc;
 
 void setup() {
   //initialize inputs and outputs
@@ -23,6 +25,7 @@ void setup() {
   criticalCount = 0;
   digitalWrite(criticalLED, LOW);
   digitalWrite(buzzer, LOW);
+  cc = (x*pow(10, -6))/30; 
 
 }
 
@@ -37,18 +40,24 @@ void loop() {
   int temp = readTempSensor(); /*MAKE SURE OUTPUT TYPE AND INPUTS ARE SAME AS FUNCTION*/
   detectFall();
   if (isCritical(heart, temp) == HIGH) {
-    criticalCount++; /*++ MIGHT NOT EXIST IN THIS LANGUAGE*/
+    criticalCount++; 
   }
-  if (criticalCount == 10) { /*CHANGE VALUE OF 10 TO ACTUAL VALUE */
+  else {
+    criticalCount = 0;
+  }
+  if (criticalCount == cc) {
     emergencyProcedure();
   }
-  /*MIGHT NEED TO CHANGE THIS TIME*/
-  delayMicroseconds(5); //wait a short amount of time before reading sensors again
+  
+  delayMicroseconds(x); //wait a short amount of time before reading sensors again
 
 }
 
 int readHeartMonitor() {/*MIGHT NEED TO CHANGE OUTPUT TYPE AND POSSIBLY ADD INPUTS*/
-  
+  /*
+   * Pop oldest value out of list, push on new value, calculate heart rate from values in list
+   */
+   
 }
 
 int readTempSensor() { /*MIGHT NEED TO CHANGE OUTPUT TYPE AND POSSIBLY ADD INPUTS*/
@@ -56,11 +65,20 @@ int readTempSensor() { /*MIGHT NEED TO CHANGE OUTPUT TYPE AND POSSIBLY ADD INPUT
 }
 
 bool isCritical(int heart, int temp) { /*CHANGE DATA TYPES TO MATCH OTHERS*/
-
+  if (heart < 40 or heart > 220){
+    return HIGH;
+  }
+  if(temp){ /*FIX THIS STATEMENT FOR CRITICAL TEMPS*/
+    return HIGH;
+  }
+  else return LOW;
 }
 
 bool detectFall() { //read accelerometer to detect fall
-  /*READ ACCELEROMETER AND INTERPRET DATA*/
+  /*
+   * https://www.arduino.cc/en/Tutorial/Genuino101CurieIMUOrientationVisualiser
+   * https://www.cs.virginia.edu/~stankovic/psfiles/bsn09-1.pdf
+   */
   //if fall detected
   critical();
 }
@@ -70,14 +88,14 @@ void critical() {
   //turn on LED and buzzer
   digitalWrite(criticalLED, HIGH);
   digitalWrite(buzzer, HIGH);
-  while (millis() - startTime < WAIT_TIME) {
+  while (millis() - startTime < (WAIT_TIME * 1000)) {
     /*MIGHT NEED TO IMPLEMENT BUTTON DEBOUNCING*/
     buttonState = digitalRead(cancel);
     
     if (buttonState == HIGH) { //if person indicates they are okay
       digitalWrite(criticalLED, LOW); //turn of LED and buzzer
       digitalWrite(buzzer, LOW);
-      criticalCount = 0; /*MIGHT NOT NEED THIS IF CHANGE HOW CRITICAL IS DECIDED*/
+      criticalCount = 0;
       return;
     }
   }
