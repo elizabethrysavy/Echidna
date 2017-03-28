@@ -1,6 +1,0 @@
-[submodule "PulseSensor"]
-	path = PulseSensor
-	url = ./PulseSensor
-[submodule "PulseSensorBPM"]
-	path = PulseSensorBPM
-	url = ./PulseSensorBPM
