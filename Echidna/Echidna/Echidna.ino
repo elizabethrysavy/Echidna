@@ -15,6 +15,7 @@ int switchState;
 int buttonState;
 const int x = 5; /*MIGHT NEED TO CHANGE THIS VALUE*/
 int cc;
+
 int prevTime;
 
 void setup() {
@@ -29,6 +30,7 @@ void setup() {
   digitalWrite(criticalLED, LOW);
   digitalWrite(buzzer, LOW);
   cc = (x*pow(10, -6))/30; 
+
   prevTime = micros();
 }
 
