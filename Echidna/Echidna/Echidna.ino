@@ -1,4 +1,4 @@
-#include <StackArray.h>
+#include <StackArray.h> /*MIGHT NOT NEED THIS*/
 #include <CurieIMU.h>
 
 //set pin numbers:
@@ -92,7 +92,7 @@ bool isCritical(int heart, int temp) { /*CHANGE DATA TYPES TO MATCH OTHERS*/
   else return LOW;
 }
 
-bool detectFall() { //read accelerometer to detect fall
+void detectFall() { //read accelerometer to detect fall
   /*
    * MIGHT NEED THIS IF OTHER THING DOESN'T WORK
      https://www.arduino.cc/en/Tutorial/Genuino101CurieIMUOrientationVisualiser
@@ -139,5 +139,10 @@ void emergencyProcedure() { //user read to be in critical condition
   digitalWrite(criticalLED, LOW); //turn off LED to conserve power
   digitalWrite(buzzer, HIGH); //make sure buzzer is on so person can be located easier
   /*GPS AND SOS STUFF, MAKE SIGNAL CANCELLABLE*/
+  while(1){
+    /*GPS STUFF
+     * IF BUTTON PRESSED: RETURN
+     */
+  }
 }
 
