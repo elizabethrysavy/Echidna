@@ -1,12 +1,15 @@
 #include <CurieIMU.h>
-#include <MadgwickAHRS.h>
+/*#include <MadgwickAHRS.h>
 
 Madgwick filter;
 unsigned long microsPerReading, microsPrevious;
-float accelScale, gyroScale;
+float accelScale, gyroScale;*/
+unsigned long loopTime = 0;          // get the time since program started
+unsigned long interruptsTime = 0;    // get the time when free fall event is detected
+
 
 void setup() {
-  Serial.begin(9600);
+  /*Serial.begin(9600);
 
   // start the IMU and filter
   CurieIMU.begin();
@@ -21,11 +24,22 @@ void setup() {
 
   // initialize variables to pace updates to correct rate
   microsPerReading = 1000000 / 25;
-  microsPrevious = micros();
+  microsPrevious = micros();*/
+  Serial.begin(9600); // initialize Serial communication
+  while (!Serial) ;   // wait for serial port to connect.
+
+  /* Initialise the IMU */
+  CurieIMU.begin();
+  CurieIMU.attachInterrupt(eventCallback);
+
+  /* Enable Free Fall Detection */
+  CurieIMU.setDetectionThreshold(CURIE_IMU_FREEFALL, 1000); // 1g=1000mg
+  CurieIMU.setDetectionDuration(CURIE_IMU_FREEFALL, 50);  // 50ms
+  CurieIMU.interrupts(CURIE_IMU_FREEFALL);
 }
 
 void loop() {
-  int aix, aiy, aiz;
+  /*int aix, aiy, aiz;
   int gix, giy, giz;
   float ax, ay, az;
   float gx, gy, gz;
@@ -58,10 +72,12 @@ void loop() {
     //Serial.print("");
     // increment previous time, so we keep proper pace
     microsPrevious = microsPrevious + microsPerReading;
-  }
+    
+  }*/
+  detectFall();
 }
 
-float convertRawAcceleration(int aRaw) {
+/*float convertRawAcceleration(int aRaw) {
   // since we are using 2G range
   // -2g maps to a raw value of -32768
   // +2g maps to a raw value of 32767
@@ -77,4 +93,29 @@ float convertRawGyro(int gRaw) {
   
   float g = (gRaw * 250.0) / 32768.0;
   return g;
+}*/
+
+void detectFall() { //read accelerometer to detect fall
+  /*
+   * MIGHT NEED THIS IF OTHER THING DOESN'T WORK
+     https://www.arduino.cc/en/Tutorial/Genuino101CurieIMUOrientationVisualiser
+     https://www.cs.virginia.edu/~stankovic/psfiles/bsn09-1.pdf
+     MIGHT ALSO USE CURIEIMU SHOCK DETECTED FUNCTION
+  */
+  //detect freefall
+  loopTime = millis();
+  if (abs(loopTime - interruptsTime) < 1000 )
+    critical();
 }
+
+static void eventCallback() {
+  if (CurieIMU.getInterruptStatus(CURIE_IMU_FREEFALL)) {
+    Serial.println("free fall detected! ");
+    interruptsTime = millis();
+  }
+}
+
+void critical(){
+  Serial.print("CRITICAL");
+}
+
