@@ -21,7 +21,7 @@ unsigned long loopTime = 0;          // get the time since program started
 unsigned long interruptsTime = 0;    // get the time when free fall event is detected
 
 //pulse sensor variables
- const int PIN_INPUT = A0;
+
  const unsigned long MICROS_PER_READ = 2 * 1000L;
  const boolean REPORT_JITTER_AND_HANG = HIGH;
  const long OFFSET_MICROS = 1L;
@@ -32,7 +32,7 @@ unsigned long interruptsTime = 0;    // get the time when free fall event is det
  byte samplesUntilReport;
  const byte SAMPLES_PER_SERIAL_SAMPLE = 20;
  int BPM; //This will have the value of the Beats Per Minute of the person's heart rate.
- PulseSensorBPM pulseDetector(PIN_INPUT, MICROS_PER_READ / 1000L);
+ PulseSensorBPM pulseDetector(tempSensor, MICROS_PER_READ / 1000L);
 
 void setup() {
   //initialize inputs and outputs
@@ -45,7 +45,7 @@ void setup() {
   criticalCount = 0;
   digitalWrite(criticalLED, LOW);
   digitalWrite(buzzer, LOW);
-  cc = (x * pow(10, -6)) / 30;
+  cc = (x * pow(10, -6)) / 30; //30 seconds
   prevTime = micros();
 
   Serial.begin(9600); // initialize Serial communication
@@ -74,8 +74,8 @@ void loop() {
     return;
   }
   //read monitors
-  int heart = readHeartMonitor(); /*MAKE SURE OUTPUT TYPE AND INPUTS ARE SAME AS FUNCTION*/
-  int temp = readTempSensor(); /*MAKE SURE OUTPUT TYPE AND INPUTS ARE SAME AS FUNCTION*/
+  int heart = readHeartMonitor();
+  int temp = readTempSensor(); 
   detectFall();
   if (isCritical(heart, temp) == HIGH) {
     criticalCount++;
@@ -127,16 +127,25 @@ int readHeartMonitor() {
 }
 
 
-int readTempSensor() { /*MIGHT NEED TO CHANGE OUTPUT TYPE AND POSSIBLY ADD INPUTS*/
-  
+int readTempSensor() { 
+  int reading = analogRead(tempSensor); //reads the value on the pin
+
+  //converts reading into a voltage
+  float voltage = reading * 5.0; 
+  voltage /= 1024.0;
+
+  //converts reading to fahrenheit
+  float temperatureF = (((voltage - 0.5) * 100;) * 9.0 / 5.0) + 32.0;
+
+  return (int) temperatureF;
 }
 
 
-bool isCritical(int heart, int temp) { /*CHANGE DATA TYPES TO MATCH OTHERS*/
+bool isCritical(int heart, int temp) { 
   if (heart < 40 or heart > 220) {
     return HIGH;
   }
-  if (temp) { /*FIX THIS STATEMENT FOR CRITICAL TEMPS*/
+  if (temp < 95 or temp > 103) { 
     return HIGH;
   }
   else return LOW;
