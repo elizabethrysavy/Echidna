@@ -135,7 +135,7 @@ int readTempSensor() {
   voltage /= 1024.0;
 
   //converts reading to fahrenheit
-  float temperatureF = (((voltage - 0.5) * 100;) * 9.0 / 5.0) + 32.0;
+  float temperatureF = (((voltage - 0.5) * 100) * 9.0 / 5.0) + 32.0;
 
   return (int) temperatureF;
 }
@@ -202,6 +202,7 @@ void emergencyProcedure() { //user read to be in critical condition
       criticalCount = 0;
       /*TURN OFF GPS AND SIGNAL*/
       return;
+    }
   }
 }
 
