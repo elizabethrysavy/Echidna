@@ -12,25 +12,42 @@
  int bien=0;
  int conta=0;
  int indices[13];
+ 
  void setup() {
-   pinMode(ledPin, OUTPUT);       // Initialize LED pin
+   pinMode(LED_BUILTIN, OUTPUT);       // Initialize LED pin
    pinMode(rxPin, INPUT);
    pinMode(txPin, OUTPUT);
    Serial.begin(4800);
    for (int i=0;i<300;i++){       // Initialize a buffer for received data
      linea[i]=' ';
-   }   
+   }
+   
  }
  void loop() {
-   digitalWrite(ledPin, HIGH);
+   
+   // Check if data is being ouputed
+   if(Serial.available() > 0){
+      Serial.println("Data is available");
+      Serial.println(Serial.read());
+   }
+   
    byteGPS=Serial.read();         // Read a byte of the serial port
    if (byteGPS == -1) {           // See if the port is empty yet
+     
      delay(100); 
    } else {
+    //DBUG check if data is read
+    for(int i = 0; i < 2; ++i){
+        digitalWrite(LED_BUILTIN, HIGH);
+        delay(500);
+        digitalWrite(LED_BUILTIN, LOW);
+        delay(500);
+    }
+    
      // note: there is a potential buffer overflow here!
      linea[conta]=byteGPS;        // If there is serial port data, it is put in the buffer
      conta++;                      
-     Serial.print(byteGPS, BYTE); 
+     Serial.print((char)byteGPS); 
      if (byteGPS==13){            // If the received byte is = to 13, end of transmission
        // note: the actual end of transmission is <CR><LF> (i.e. 0x13 0x10)
        digitalWrite(ledPin, LOW); 
