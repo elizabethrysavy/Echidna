@@ -11,7 +11,7 @@ const int tempSensor = A0; //pin number for temperature sensor
 
 //global variables
 int criticalCount;
-const int WAIT_TIME = 90; //seconds to push cancel button after sensors read as critical
+const int WAIT_TIME = 45; //seconds to push cancel button after sensors read as critical
 int switchState;
 int buttonState;
 const int x = 5; /*MIGHT NEED TO CHANGE THIS VALUE*/
@@ -45,7 +45,8 @@ void setup() {
   criticalCount = 0;
   digitalWrite(criticalLED, LOW);
   digitalWrite(buzzer, LOW);
-  cc = (x * pow(10, -6)) / 30; //30 seconds
+  /* THIS MIGHT BE WRONG BECAUSE OF TYPES IDK HOW IT CONVERTS*/
+  cc = (30/(x * pow(10, -6))) * 0.9; //90% of the reads taken in 30s
   prevTime = micros();
 
   Serial.begin(9600); // initialize Serial communication
@@ -68,7 +69,6 @@ void setup() {
 }
 
 void loop() {
-  //loop repeatedly
   switchState = digitalRead(power);
   if (switchState == LOW) { //if power switch is off
     return;
@@ -81,7 +81,9 @@ void loop() {
     criticalCount++;
   }
   else {
-    criticalCount = 0;
+    if (criticalCount != 0) {
+      criticalCount--;
+    }
   }
   if (criticalCount == cc) {
     emergencyProcedure();
