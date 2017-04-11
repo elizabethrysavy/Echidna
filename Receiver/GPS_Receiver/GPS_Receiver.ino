@@ -14,13 +14,18 @@ String data;
 char c;
 
 void setup() {
-  pinMode(LED_BUILTIN, OUTPUT);       // Initialize LED pin
+  //pinMode(LED_BUILTIN, OUTPUT);       // Initialize LED pin
   
-  digitalWrite(LED_BUILTIN, HIGH);
+  //digitalWrite(LED_BUILTIN, HIGH);
   
   Serial.begin(57600);
-  while(!Serial){}
   
+  while(!Serial){
+    
+  }
+
+  Serial.println("Working");
+    
   gps.begin(9600);
   
 }
@@ -53,10 +58,8 @@ void loop() {
     }else{
       data += c;
     }
-  }
-    
-    //DEBUG
-    Serial.write(gps.read());
+
+    Serial.write(c);
   }
 
   if(Serial.available()){
