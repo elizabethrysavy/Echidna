@@ -1,25 +1,27 @@
 #include <SoftwareSerial.h>
 
-SoftwareSerial mySerial(0, 1);
+SoftwareSerial mySerial(0, 1); // RX, TX
 
 void setup() {
+  // Open serial communications and wait for port to open:
   Serial.begin(57600);
-  while(!Serial){
-        
+  while (!Serial) {
+    ; // wait for serial port to connect. Needed for native USB port only
   }
+
 
   Serial.println("Goodnight moon!");
 
+  // set the data rate for the SoftwareSerial port
   mySerial.begin(9600);
-  mySerial.println("Is it working?");
+  mySerial.println("Hello, world?");
 }
 
-void loop() {
-  if(mySerial.available()){
-      Serial.write(mySerial.read());
+void loop() { // run over and over
+  if (mySerial.available()) {
+    Serial.write(mySerial.read());
   }
-
-  if(Serial.available()){
-    Serial.println(Serial.read());    
+  if (Serial.available()) {
+    mySerial.write(Serial.read());
   }
 }
