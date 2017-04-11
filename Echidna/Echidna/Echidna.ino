@@ -6,8 +6,8 @@ const int power = 7;   //pin number for power switch
 const int cancel = 8; //pin number for alarm cancel button
 const int criticalLED = 2; //pin number for LED for critical warning
 const int buzzer = 4; //pin number for buzzer
-const int pulseSensor = 13; //pin number for pulse sensor
-const int tempSensor = A0; //pin number for temperature sensor
+const int pulseSensor = A0; //pin number for pulse sensor
+const int tempSensor = 13; //pin number for temperature sensor
 
 //global variables
 int criticalCount;
@@ -32,7 +32,7 @@ unsigned long interruptsTime = 0;    // get the time when free fall event is det
  byte samplesUntilReport;
  const byte SAMPLES_PER_SERIAL_SAMPLE = 20;
  int BPM; //This will have the value of the Beats Per Minute of the person's heart rate.
- PulseSensorBPM pulseDetector(tempSensor, MICROS_PER_READ / 1000L);
+ PulseSensorBPM pulseDetector(pulseSensor, MICROS_PER_READ / 1000L);
 
 void setup() {
   //initialize inputs and outputs
@@ -85,7 +85,7 @@ void loop() {
       criticalCount--;
     }
   }
-  if (criticalCount == cc) {
+  if (criticalCount >= cc) {
     emergencyProcedure();
   }
 

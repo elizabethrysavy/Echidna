@@ -2,7 +2,7 @@
 #include <PulseSensorBPM.h>
 
 //set pin numbers:
-const int pulseSensor = 13; //pin number for pulse sensor
+const int pulseSensor = A0; //pin number for pulse sensor
 
 //global variables
 int criticalCount;
@@ -25,7 +25,7 @@ unsigned long interruptsTime = 0;    // get the time when free fall event is det
  byte samplesUntilReport;
  const byte SAMPLES_PER_SERIAL_SAMPLE = 20;
  int BPM; //This will have the value of the Beats Per Minute of the person's heart rate.
- PulseSensorBPM pulseDetector(tempSensor, MICROS_PER_READ / 1000L);
+ PulseSensorBPM pulseDetector(pulseSensor, MICROS_PER_READ / 1000L);
 
 void setup() {
   //initialize inputs and outputs
@@ -34,7 +34,7 @@ void setup() {
   criticalCount = 0;
   digitalWrite(LED_BUILTIN, LOW);
   /* THIS MIGHT BE WRONG BECAUSE OF TYPES IDK HOW IT CONVERTS*/
-  cc = (30/(x * pow(10, -6))) * 0.9; //90% of the reads taken in 30s
+  cc = (10/(x * pow(10, -6))) * 0.9; //90% of the reads taken in 30s
   prevTime = micros();
 
   Serial.begin(9600); // initialize Serial communication
@@ -62,14 +62,16 @@ void loop() {
   detectFall();
   if (isCritical(heart) == HIGH) {
     criticalCount++;
+    Serial.print("critical count: ");
+    Serial.println(criticalCount);
   }
   else {
     if (criticalCount != 0) {
       criticalCount--;
     }
   }
-  if (criticalCount == cc) {
-    emergencyProcedure();
+  if (criticalCount >= cc) {
+    critical();
   }
 
   delayMicroseconds(x); //wait a short amount of time before reading sensors again
@@ -106,14 +108,16 @@ int readHeartMonitor() {
  
  if (QS) {
    BPM = pulseDetector.getBPM();
+   Serial.println(BPM);
  }
+ 
  return BPM;
 
 }
 
 
 bool isCritical(int heart) { 
-  if (heart < 40 or (heart > 220 and heart < 300)) {
+  if (heart < 90 or (heart > 220 and heart < 300)) {
     return HIGH;
   }
   else return LOW;
@@ -143,8 +147,7 @@ void critical() {
   //turn on LED and buzzer
   digitalWrite(LED_BUILTIN, HIGH);
   while (millis() - startTime < (WAIT_TIME * 1000)) {
-     if((millis()-startTime)%1000 == 0)
-      Serial.print("CRITICAL "); //print once a second
+     Serial.print("CRITICAL "); //print once a second
   }
   //if button hasnt been pressed, implement emergency procedure
   emergencyProcedure();
@@ -153,10 +156,9 @@ void critical() {
 
 void emergencyProcedure() { //user read to be in critical condition
   digitalWrite(LED_BUILTIN, LOW); //turn off LED to conserve power
-  startTime = millis();
+  unsigned long startTime = millis();
   while(millis() - startTime < 15000){
-    if((millis() - startTime)%1000 == 0)
-      Serial.print("DANGER");
+     Serial.print("DANGER");
   }
 }
 
