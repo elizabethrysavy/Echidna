@@ -2,18 +2,11 @@
 #include <PulseSensorBPM.h>
 
 //set pin numbers:
-const int power = 7;   //pin number for power switch
-const int cancel = 8; //pin number for alarm cancel button
-const int criticalLED = 2; //pin number for LED for critical warning
-const int buzzer = 4; //pin number for buzzer
 const int pulseSensor = 13; //pin number for pulse sensor
-const int tempSensor = A0; //pin number for temperature sensor
 
 //global variables
 int criticalCount;
 const int WAIT_TIME = 45; //seconds to push cancel button after sensors read as critical
-int switchState;
-int buttonState;
 const int x = 5; /*MIGHT NEED TO CHANGE THIS VALUE*/
 int cc;
 int prevTime;
@@ -36,15 +29,10 @@ unsigned long interruptsTime = 0;    // get the time when free fall event is det
 
 void setup() {
   //initialize inputs and outputs
-  pinMode(power, INPUT);
-  pinMode(cancel, INPUT);
-  pinMode(criticalLED, OUTPUT);
-  pinMode(buzzer, OUTPUT);
-
+  pinMode(LED_BUILTIN, OUTPUT);
   //initialize variables and states
   criticalCount = 0;
-  digitalWrite(criticalLED, LOW);
-  digitalWrite(buzzer, LOW);
+  digitalWrite(LED_BUILTIN, LOW);
   /* THIS MIGHT BE WRONG BECAUSE OF TYPES IDK HOW IT CONVERTS*/
   cc = (30/(x * pow(10, -6))) * 0.9; //90% of the reads taken in 30s
   prevTime = micros();
@@ -69,15 +57,10 @@ void setup() {
 }
 
 void loop() {
-  switchState = digitalRead(power);
-  if (switchState == LOW) { //if power switch is off
-    return;
-  }
   //read monitors
   int heart = readHeartMonitor();
-  int temp = readTempSensor(); 
   detectFall();
-  if (isCritical(heart, temp) == HIGH) {
+  if (isCritical(heart) == HIGH) {
     criticalCount++;
   }
   else {
@@ -129,25 +112,8 @@ int readHeartMonitor() {
 }
 
 
-int readTempSensor() { 
-  int reading = analogRead(tempSensor); //reads the value on the pin
-
-  //converts reading into a voltage
-  float voltage = reading * 5.0; 
-  voltage /= 1024.0;
-
-  //converts reading to fahrenheit
-  float temperatureF = (((voltage - 0.5) * 100) * 9.0 / 5.0) + 32.0;
-
-  return (int) temperatureF;
-}
-
-
-bool isCritical(int heart, int temp) { 
+bool isCritical(int heart) { 
   if (heart < 40 or (heart > 220 and heart < 300)) {
-    return HIGH;
-  }
-  if (temp < 95 or temp > 103) { 
     return HIGH;
   }
   else return LOW;
@@ -175,17 +141,10 @@ static void eventCallback() {
 void critical() {
   unsigned long startTime = millis();
   //turn on LED and buzzer
-  digitalWrite(criticalLED, HIGH);
-  digitalWrite(buzzer, HIGH);
+  digitalWrite(LED_BUILTIN, HIGH);
   while (millis() - startTime < (WAIT_TIME * 1000)) {
-    buttonState = digitalRead(cancel);
-
-    if (buttonState == HIGH) { //if person indicates they are okay
-      digitalWrite(criticalLED, LOW); //turn of LED and buzzer
-      digitalWrite(buzzer, LOW);
-      criticalCount = 0;
-      return;
-    }
+     if((millis()-startTime)%1000 == 0)
+      Serial.print("CRITICAL "); //print once a second
   }
   //if button hasnt been pressed, implement emergency procedure
   emergencyProcedure();
@@ -193,19 +152,11 @@ void critical() {
 
 
 void emergencyProcedure() { //user read to be in critical condition
-  digitalWrite(criticalLED, LOW); //turn off LED to conserve power
-  digitalWrite(buzzer, HIGH); //make sure buzzer is on so person can be located easier
-  
-  while(1){
-    /*GPS AND SOS STUFF*/
-    Serial.print("DANGER");
-    buttonState = digitalRead(cancel);
-    if (buttonState == HIGH) { //if person indicates they are okay
-      digitalWrite(buzzer, LOW);
-      criticalCount = 0;
-      /*TURN OFF GPS AND SIGNAL*/
-      return;
-    }
+  digitalWrite(LED_BUILTIN, LOW); //turn off LED to conserve power
+  startTime = millis();
+  while(millis() - startTime < 15000){
+    if((millis() - startTime)%1000 == 0)
+      Serial.print("DANGER");
   }
 }
 
