@@ -19,6 +19,7 @@ int cc;
 int prevTime;
 unsigned long loopTime = 0;          // get the time since program started
 unsigned long interruptsTime = 0;    // get the time when free fall event is detected
+int prevSS; //previous switch state
 
 //pulse sensor variables
 
@@ -48,6 +49,7 @@ void setup() {
   /* THIS MIGHT BE WRONG BECAUSE OF TYPES IDK HOW IT CONVERTS*/
   cc = (30/(x * pow(10, -6))) * 0.9; //90% of the reads taken in 30s
   prevTime = micros();
+  prevSS = digitalRead(power);
 
   Serial.begin(9600); // initialize Serial communication
   while (!Serial) ;   // wait for serial port to connect.
@@ -73,6 +75,19 @@ void loop() {
   if (switchState == LOW) { //if power switch is off
     return;
   }
+
+  if (prevSS == LOW) { //if system was off
+    //reset variables
+    prevTime = micros();
+    criticalCount = 0;
+    digitalWrite(criticalLED, LOW);
+    digitalWrite(buzzer, LOW);
+    samplesUntilReport = SAMPLES_PER_SERIAL_SAMPLE;
+    lastReportMicros = 0L;
+    resetJitter();
+    wantMicros = micros() + MICROS_PER_READ;
+  }
+  prevSS = switchState;
   //read monitors
   int heart = readHeartMonitor();
   int temp = readTempSensor(); 
