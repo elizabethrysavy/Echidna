@@ -8,9 +8,10 @@ const int cancel = 8; //pin number for alarm cancel button
 const int criticalLED = 2; //pin number for LED for critical warning
 const int buzzer = 4; //pin number for buzzer
 const int pulseSensor = A0; //pin number for pulse sensor
-const int tempSensor = 13; //pin number for temperature sensor
+const int tempSensor = A1; //pin number for temperature sensor
 
 const int wantPrint = HIGH; //will it be connected to the computer at this demo?
+
 
 //global variables
 int criticalCount;
