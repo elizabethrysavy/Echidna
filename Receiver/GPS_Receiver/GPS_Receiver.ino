@@ -59,7 +59,16 @@ void loop() {
       data += c;
     }
 
-    Serial.write(location);
+    Serial.write(c);
+    
+    /*
+    byte buffer[location.length()];
+    location.getBytes(buffer, location.length());  
+    
+    for(int i = 0; i < ){
+      Serial.write  
+    }
+    */
   }
 
   if(Serial.available()){
