@@ -280,10 +280,10 @@ void readGPS() { /*THIS MIGHT NEED INPUTS OR SOMETHING*/
     //Check to see if there was a newline character
     if(c == '\n'){
       parseData();
-      data = "";
+      datas = "";
     }
     else{
-      data += c;
+      datas += c;
     }
     /*Serial.write(c);*/
     
@@ -303,8 +303,8 @@ void readGPS() { /*THIS MIGHT NEED INPUTS OR SOMETHING*/
 }
 
 void printForDemo(int temp, int heart) {
-  Serial.println("Heart Rate:", heart);
-  Serial.println("Temperature:", temp);
-  Serial.println("Location:", datas);
-  Serial.print();
+  Serial.println("Heart Rate: " + heart);
+  Serial.println("Temperature: " + temp);
+  Serial.println("Location: " + datas);
+  Serial.println("");
 }
