@@ -59,7 +59,7 @@ void loop() {
       data += c;
     }
 
-    Serial.write(c);
+    Serial.write(location);
   }
 
   if(Serial.available()){
