@@ -1,5 +1,6 @@
 #include <CurieIMU.h>
 #include <PulseSensorBPM.h>
+#include <SoftwareSerial.h>
 
 //set pin numbers:
 const int power = 7;   //pin number for power switch
@@ -8,6 +9,8 @@ const int criticalLED = 2; //pin number for LED for critical warning
 const int buzzer = 4; //pin number for buzzer
 const int pulseSensor = A0; //pin number for pulse sensor
 const int tempSensor = 13; //pin number for temperature sensor
+
+const int wantPrint = HIGH; //will it be connected to the computer at this demo?
 
 //global variables
 int criticalCount;
@@ -20,9 +23,9 @@ int prevTime;
 unsigned long loopTime = 0;          // get the time since program started
 unsigned long interruptsTime = 0;    // get the time when free fall event is detected
 int prevSS; //previous switch state
+int lastPrint;
 
 //pulse sensor variables
-
  const unsigned long MICROS_PER_READ = 2 * 1000L;
  const boolean REPORT_JITTER_AND_HANG = HIGH;
  const long OFFSET_MICROS = 1L;
@@ -35,6 +38,12 @@ int prevSS; //previous switch state
  int BPM; //This will have the value of the Beats Per Minute of the person's heart rate.
  PulseSensorBPM pulseDetector(pulseSensor, MICROS_PER_READ / 1000L);
 
+ //GPS variables
+ SoftwareSerial gps(0,1);
+ String location;
+ String datas;
+ char c;
+
 void setup() {
   //initialize inputs and outputs
   pinMode(power, INPUT);
@@ -46,10 +55,10 @@ void setup() {
   criticalCount = 0;
   digitalWrite(criticalLED, LOW);
   digitalWrite(buzzer, LOW);
-  /* THIS MIGHT BE WRONG BECAUSE OF TYPES IDK HOW IT CONVERTS*/
   cc = (30/(x * pow(10, -6))) * 0.9; //90% of the reads taken in 30s
   prevTime = micros();
   prevSS = digitalRead(power);
+  lastPrint = millis();
 
   Serial.begin(9600); // initialize Serial communication
   while (!Serial) ;   // wait for serial port to connect.
@@ -68,6 +77,9 @@ void setup() {
   lastReportMicros = 0L;
   resetJitter();
   wantMicros = micros() + MICROS_PER_READ;
+
+  //Initialize GPS
+  gps.begin(9600);
 }
 
 void loop() {
@@ -86,12 +98,14 @@ void loop() {
     lastReportMicros = 0L;
     resetJitter();
     wantMicros = micros() + MICROS_PER_READ;
+    lastPrint = millis();
   }
   prevSS = switchState;
   //read monitors
   int heart = readHeartMonitor();
   int temp = readTempSensor(); 
   detectFall();
+  readGPS();
   if (isCritical(heart, temp) == HIGH) {
     criticalCount++;
   }
@@ -101,7 +115,12 @@ void loop() {
     }
   }
   if (criticalCount >= cc) {
-    emergencyProcedure();
+    critical();
+  }
+
+  if (wantPrint == HIGH && millis() - lastPrint >= 2000){
+    lastPrint = millis();
+    printForDemo(heart, temp);
   }
 
   delayMicroseconds(x); //wait a short amount of time before reading sensors again
@@ -181,7 +200,8 @@ void detectFall() { //read accelerometer to detect fall
 
 static void eventCallback() {
   if (CurieIMU.getInterruptStatus(CURIE_IMU_FREEFALL)) {
-    Serial.println("free fall detected! ");
+    if(wantPrint == HIGH)
+      Serial.println("free fall detected! ");
     interruptsTime = millis();
   }
 }
@@ -194,11 +214,16 @@ void critical() {
   digitalWrite(buzzer, HIGH);
   while (millis() - startTime < (WAIT_TIME * 1000)) {
     buttonState = digitalRead(cancel);
-
+    if (wantPrint == HIGH && millis() - lastPrint >= 1000){
+      Serial.print("CRITICAL ");
+      lastPrint = millis();
+    }
     if (buttonState == HIGH) { //if person indicates they are okay
       digitalWrite(criticalLED, LOW); //turn of LED and buzzer
       digitalWrite(buzzer, LOW);
       criticalCount = 0;
+      if (wantPrint == HIGH)
+        Serial.println("\nOKAY\n");
       return;
     }
   }
@@ -210,15 +235,18 @@ void critical() {
 void emergencyProcedure() { //user read to be in critical condition
   digitalWrite(criticalLED, LOW); //turn off LED to conserve power
   digitalWrite(buzzer, HIGH); //make sure buzzer is on so person can be located easier
-  
+  gps.begin(4800);
   while(1){
     /*GPS AND SOS STUFF*/
-    Serial.print("DANGER");
+    if (wantPrint == HIGH && millis() - lastPrint >= 1000){
+      Serial.print("DANGER ");
+      lastPrint = millis();
+    }
     buttonState = digitalRead(cancel);
     if (buttonState == HIGH) { //if person indicates they are okay
       digitalWrite(buzzer, LOW);
       criticalCount = 0;
-      /*TURN OFF GPS AND SIGNAL*/
+      gps.begin(9600);
       return;
     }
   }
@@ -232,3 +260,51 @@ void resetJitter()
  maxJitterMicros = -1;
 }
 
+void parseData(){
+  //Check if the line is GPGLL
+  if(datas.substring(0, 5) == "GPGLL"){
+    //Check if it is East
+    if(datas.indexOf('E') > 0){
+      location = datas.substring(7, datas.indexOf('E'));
+    }
+    //It is West
+    else{
+      location = datas.substring(7, datas.indexOf('W')); 
+    }
+  }
+}
+
+void readGPS() { /*THIS MIGHT NEED INPUTS OR SOMETHING*/
+   if(gps.available()){
+    c = gps.read();
+    //Check to see if there was a newline character
+    if(c == '\n'){
+      parseData();
+      data = "";
+    }
+    else{
+      data += c;
+    }
+    /*Serial.write(c);*/
+    
+    /*
+    byte buffer[location.length()];
+    location.getBytes(buffer, location.length());  
+    
+    for(int i = 0; i < ){
+      Serial.write  
+    }
+    */
+  }
+
+  /*if(Serial.available()){
+    Serial.println(Serial.read());
+  }*/
+}
+
+void printForDemo(int temp, int heart) {
+  Serial.println("Heart Rate:", heart);
+  Serial.println("Temperature:", temp);
+  Serial.println("Location:", datas);
+  Serial.print();
+}
