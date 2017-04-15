@@ -11,7 +11,10 @@ const int pulseSensor = A0; //pin number for pulse sensor
 const int tempSensor = A1; //pin number for temperature sensor
 
 const int wantPrint = HIGH; //will it be connected to the computer at this demo?
-
+const int highTemp = 103;
+const int lowTemp = 93;
+const int highRate = 220;
+const int lowRate = 40;
 
 //global variables
 int criticalCount;
@@ -179,10 +182,10 @@ int readTempSensor() {
 
 
 bool isCritical(int heart, int temp) { 
-  if (heart < 40 or (heart > 220 and heart < 300)) {
+  if (heart < lowRate or (heart > highRate and heart < 300)) {
     return HIGH;
   }
-  if (temp < 95 or temp > 103) { 
+  if (temp < lowTemp or temp > highTemp) { 
     return HIGH;
   }
   else return LOW;
@@ -303,7 +306,7 @@ void readGPS() { /*THIS MIGHT NEED INPUTS OR SOMETHING*/
   }*/
 }
 
-void printForDemo(int temp, int heart) {
+void printForDemo(int heart, int temp) {
   Serial.println("Heart Rate: " + heart);
   Serial.println("Temperature: " + temp);
   Serial.println("Location: " + datas);
