@@ -7,7 +7,7 @@ String message = "";
 void setup() {
   Serial.begin(57600);
   transmitter.begin(4800);
-  message = "SOS SOS SOS SOS SOS\n";
+  message = "SOS SOS SOS SOS SOS Location is: \n";
 }
 
 void sendSOS(){
