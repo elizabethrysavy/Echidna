@@ -46,7 +46,13 @@ void parseData(){
     }
 }
 
+// Method to send out SOS signal with current location
 void sendSOS(){
+
+  //Set baud to transmitter rate
+  gps.begin(4800);
+  
+  message = "SOS Location is " + location;
   byte buffer[message.length()];
 
   int len = message.length();
@@ -57,10 +63,9 @@ void sendSOS(){
     transmitter.write((char)buffer[i]);
     Serial.print((char)buffer[i]);
   }
-}
 
-void sendLocation(){
-   message = "SOS Location is " + location;
+  // Done transmitting, reset the baud to GPS rate
+  gps.begin(9600);
 }
 
 void loop() {
