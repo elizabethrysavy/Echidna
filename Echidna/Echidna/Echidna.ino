@@ -103,6 +103,7 @@ void loop() {
     resetJitter();
     wantMicros = micros() + MICROS_PER_READ;
     lastPrint = millis();
+    gps.begin(9600);
   }
   prevSS = switchState;
   //read monitors
@@ -241,7 +242,7 @@ void emergencyProcedure() { //user read to be in critical condition
   digitalWrite(buzzer, HIGH); //make sure buzzer is on so person can be located easier
   gps.begin(4800);
   while(1){
-    /*GPS AND SOS STUFF*/
+    sendSOS();
     if (wantPrint == HIGH && millis() - lastPrint >= 1000){
       Serial.print("DANGER ");
       lastPrint = millis();
@@ -304,6 +305,18 @@ void readGPS() { /*THIS MIGHT NEED INPUTS OR SOMETHING*/
   /*if(Serial.available()){
     Serial.println(Serial.read());
   }*/
+}
+
+void sendSOS(){
+  //Set baud to transmitter rate
+  String message = "SOS Location is " + location;
+  byte buffer[message.length()];
+  int len = message.length();
+  message.getBytes(buffer,len);
+  for(int i = 0; i < len; ++i){
+    gps.write((char)buffer[i]);
+    Serial.print((char)buffer[i]);
+  }
 }
 
 void printForDemo(int heart, int temp) {
