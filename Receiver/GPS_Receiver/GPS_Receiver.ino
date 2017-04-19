@@ -5,6 +5,8 @@
 SoftwareSerial gps(0, 1);
 
 String location;
+String message;
+
 
 //Used to read in an entire line of GPS data
 String data;
@@ -49,7 +51,7 @@ void parseData(){
 void loop() {
   
   if(gps.available()){
-    c = gps.read();
+    c = gps.read();      UNCOMMENT
     
     //Check to see if there was a newline character
     if(c == '\n'){
@@ -59,11 +61,10 @@ void loop() {
       data += c;
     }
 
-    Serial.write(c);
+    Serial.write(gps.read()); // Change to c
   }
 
   if(Serial.available()){
     Serial.println(Serial.read());
   }
-  
  }
