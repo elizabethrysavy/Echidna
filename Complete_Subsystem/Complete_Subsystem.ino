@@ -9,6 +9,9 @@ String location;
 //Used to read in an entire line of GPS data
 String data;
 
+// Hold all of the message data
+String message;
+
 //Used to read in the available bytes from the receiver
 //as they are available
 char c;
@@ -43,6 +46,10 @@ void parseData(){
       }else{
         location = data.substring(7, data.indexOf('W')); 
       }
+
+      //DEBUG
+      Serial.println(location);
+      
     }
 }
 
@@ -52,7 +59,8 @@ void sendSOS(){
   //Set baud to transmitter rate
   gps.begin(4800);
   
-  message = "SOS Location is " + location;
+  message = "SOS Location is " + location + "\n";
+  
   byte buffer[message.length()];
 
   int len = message.length();
@@ -60,8 +68,8 @@ void sendSOS(){
   message.getBytes(buffer,len);
 
   for(int i = 0; i < len; ++i){
-    transmitter.write((char)buffer[i]);
-    Serial.print((char)buffer[i]);
+    gps.write(buffer[i]);
+    //Serial.print((char)buffer[i]);
   }
 
   // Done transmitting, reset the baud to GPS rate
@@ -76,12 +84,16 @@ void loop() {
     //Check to see if there was a newline character
     if(c == '\n'){
       parseData();
+      
+      // For testing purposes
+      sendSOS();
+      
       data = "";
     }else{
       data += c;
     }
 
-    Serial.write(c);
+    //Serial.write(c);
     
     /*
     byte buffer[location.length()];
