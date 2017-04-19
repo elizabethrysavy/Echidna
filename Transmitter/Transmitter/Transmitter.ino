@@ -1,15 +1,26 @@
+#include <SoftwareSerial.h>
+ 
 SoftwareSerial transmitter(0, 1);
 
-String message;
+String message = "";
 
 void setup() {
   Serial.begin(57600);
-  transmitter.begin(8000);
-  message = "SOS SOS SOS SOS SOS\n";
+  transmitter.begin(4800);
+  message = "SOS SOS SOS SOS SOS Location is: \n";
 }
 
 void sendSOS(){
-  message.write(message);
+  byte buffer[message.length()];
+
+  int len = message.length();
+
+  message.getBytes(buffer,len);
+
+  for(int i = 0; i < len; ++i){
+    transmitter.write((char)buffer[i]);
+    Serial.print((char)buffer[i]);
+  }
 }
 
 void loop(){
