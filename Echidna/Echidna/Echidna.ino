@@ -11,24 +11,26 @@ const int pulseSensor = A0; //pin number for pulse sensor
 const int tempSensor = A1; //pin number for temperature sensor
 
 const int wantPrint = HIGH; //will it be connected to the computer at this demo?
-const int highTemp = 103;
-const int lowTemp = 93;
-const int highRate = 220;
-const int lowRate = 40;
+const int highTemp = 103; //high critical threshold for temperature
+const int lowTemp = 93; //low critical threshold for temperature
+const int highRate = 220; //high critical threshold for pulse
+const int lowRate = 40; //low critical threshold for pulse
 
 //global variables
-int criticalCount;
-const int WAIT_TIME = 45; //seconds to push cancel button after sensors read as critical
-int switchState;
-int buttonState;
-const int x = 5; //delay time in microseconds before looping again
+unsigned int criticalCount; //counts number of times user has been in critical range
+const int WAIT_TIME = 10; //seconds to push cancel button after sensors read as critical
+int switchState; //used to read the on/off switch
+int buttonState; //used to read the cancel button
+const int x = 5; /*MIGHT NEED TO CHANGE THIS VALUE*/ //i don't know what this is.
+//int cc; //do not use this anymore. Need an unsigned int.
 unsigned int cc;
+int prevTime;
 unsigned long loopTime = 0;          // get the time since program started
 unsigned long interruptsTime = 0;    // get the time when free fall event is detected
 int prevSS; //previous switch state
-int lastPrint; //time of last print
+int lastPrint;
 
-//pulse sensor variables
+//pulse sensor variables, used for internal workings of pulse sensor ONLY
  const unsigned long MICROS_PER_READ = 2 * 1000L;
  const boolean REPORT_JITTER_AND_HANG = HIGH;
  const long OFFSET_MICROS = 1L;
@@ -42,13 +44,13 @@ int lastPrint; //time of last print
  PulseSensorBPM pulseDetector(pulseSensor, MICROS_PER_READ / 1000L);
 
  //GPS variables
- SoftwareSerial gps(0,1);
- String location;
- String datas; //info recieved from GPS
- char c;
+ SoftwareSerial gps(0,1); //gps is an item
+ String location; //location of user
+ String data; //information received from GPS locator
+ char c; 
 
 void setup() {
-  delay(1000); //wait a moment to avoid triggering interrupt
+  delay(1000); //wait a moment so avoid triggering free fall mode
   //initialize inputs and outputs
   pinMode(power, INPUT);
   pinMode(cancel, INPUT);
@@ -59,8 +61,10 @@ void setup() {
   criticalCount = 0;
   digitalWrite(criticalLED, LOW);
   digitalWrite(buzzer, LOW);
-  //cc = 5400000; //90% of the reads taken in 30s
-  cc = 100000; //value for testing purposes
+  //cc = (30/(x * pow(10, -6))) * 0.9; //90% of the reads taken in 30s
+  //cc = 5400000; //this is the actual value for 30 seconds
+  cc = 100000; //testing purposes: Lowering time it takes to trigger value
+  prevTime = micros();
   prevSS = digitalRead(power);
   lastPrint = millis();
 
@@ -91,7 +95,8 @@ void setup() {
   }
 }
 
-void loop() {
+void loop() 
+{
   switchState = digitalRead(power);
   if (switchState == LOW) { //if power switch is off
     if (wantPrint == HIGH)
@@ -106,6 +111,7 @@ void loop() {
 
   if (prevSS == LOW) { //if system was off
     //reset variables
+    prevTime = micros();
     criticalCount = 0;
     digitalWrite(criticalLED, LOW);
     digitalWrite(buzzer, LOW);
@@ -122,14 +128,17 @@ void loop() {
   int temp = readTempSensor(); 
   detectFall();
   readGPS();
-  if (isCritical(heart, temp) == HIGH) {
+  
+  if (isCritical(heart, temp) == HIGH) 
+  {
     criticalCount++;
   }
-  else {
-    if (criticalCount > 0) {
-      criticalCount--;
-    }
+  
+  else if (criticalCount > 0) 
+  {
+    criticalCount--;
   }
+  
   if (criticalCount >= cc) {
     critical();
   }
@@ -194,7 +203,8 @@ int readTempSensor() {
 
 
 bool isCritical(int heart, int temp) { 
-  if (heart < lowRate or (heart > highRate and heart < 300)) {
+  if (heart < lowRate or (heart > highRate and heart < 300))
+  {
     return HIGH;
   }
   if (temp < lowTemp or temp > highTemp) { 
@@ -208,9 +218,9 @@ void detectFall() { //read accelerometer to detect fall
   //detect freefall
   loopTime = millis();
   if (abs(loopTime - interruptsTime) < 1000 )
-    if(wantPrint == HIGH)
-      Serial.println("free fall detected! ");
+  {
     critical();
+  }  
   else
     return;
 }
@@ -218,6 +228,9 @@ void detectFall() { //read accelerometer to detect fall
 
 static void eventCallback() {
   if (CurieIMU.getInterruptStatus(CURIE_IMU_FREEFALL)) {
+    if(wantPrint == HIGH)
+      Serial.println("free fall detected! ");
+      Serial.println();
     interruptsTime = millis();
   }
 }
@@ -228,13 +241,15 @@ void critical() {
   //turn on LED and buzzer
   digitalWrite(criticalLED, HIGH);
   digitalWrite(buzzer, HIGH);
-  while (millis() - startTime < (WAIT_TIME * 1000)) {
+  while (millis() - startTime < (WAIT_TIME * 1000)) 
+  {
     buttonState = digitalRead(cancel);
-    if (wantPrint == HIGH && millis() - lastPrint >= 1000){
-       Serial.println("CRITICAL: Push button if no help is required.\n");
+    if (wantPrint == HIGH && millis() - lastPrint >= 1000)
+    {
+      Serial.println("CRITICAL: Push button if no help is required.\n");
       lastPrint = millis();
     }
-    if (buttonState == HIGH) { //if person indicates they are okay
+    if (buttonState == LOW) { //if person indicates they are okay
       digitalWrite(criticalLED, LOW); //turn of LED and buzzer
       digitalWrite(buzzer, LOW);
       criticalCount = 0;
@@ -264,7 +279,7 @@ void emergencyProcedure() { //user read to be in critical condition
       lastPrint = millis();
     }
     buttonState = digitalRead(cancel);
-    if (buttonState == HIGH) { //if person indicates they are okay
+    if (buttonState == LOW) { //if person indicates they are okay
       digitalWrite(buzzer, LOW);
       criticalCount = 0;
       if (wantPrint == HIGH)
@@ -289,30 +304,32 @@ void resetJitter()
 
 void parseData(){
   //Check if the line is GPGLL
-  if(datas.substring(0, 5) == "GPGLL"){
+  if(data.substring(0, 5) == "GPGLL"){
     //Check if it is East
-    if(datas.indexOf('E') > 0){
-      location = datas.substring(7, datas.indexOf('E'));
+    if(data.indexOf('E') > 0){
+      location = data.substring(7, data.indexOf('E'));
     }
     //It is West
     else{
-      location = datas.substring(7, datas.indexOf('W')); 
+      location = data.substring(7, data.indexOf('W')); 
     }
   }
 }
 
-void readGPS() { 
+void readGPS() { /*THIS MIGHT NEED INPUTS OR SOMETHING*/
    if(gps.available()){
+    //Serial.println("Grabbing GPS Data.");
     c = gps.read();
     //Check to see if there was a newline character
     if(c == '\n'){
       parseData();
-      datas = "";
+      Serial.println("New Line Being Printed");
+      data = "";
     }
     else{
-      datas += c;
+      data += c;
     }
-    /*Serial.write(c);*/
+    Serial.write(c);
     
     /*
     byte buffer[location.length()];
@@ -324,18 +341,19 @@ void readGPS() {
     */
   }
 
-  /*if(Serial.available()){
+  if(Serial.available()){
     Serial.println(Serial.read());
-  }*/
+  }
 }
 
-void sendSOS(){
-  //Set baud to transmitter rate
-  String message = "SOS Location is " + location;
+void sendSOS()
+{
+  String message = ".SOS Location is " + location;
   byte buffer[message.length()];
   int len = message.length();
   message.getBytes(buffer,len);
-  for(int i = 0; i < len; ++i){
+  for(int i = 0; i < len; ++i)
+  {
     gps.write(buffer[i]);
   }
 }
@@ -346,7 +364,8 @@ void printForDemo(int heart, int temp) {
   Serial.print("Temperature: ");
   Serial.println(temp);
   Serial.print("Location: ");
-  Serial.println(datas);
+  Serial.println();
+  //Serial.println(location);
   Serial.print("Critical Count: ");
   Serial.println(criticalCount);
   Serial.println("");
