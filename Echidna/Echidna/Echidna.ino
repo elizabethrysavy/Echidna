@@ -21,13 +21,12 @@ int criticalCount;
 const int WAIT_TIME = 45; //seconds to push cancel button after sensors read as critical
 int switchState;
 int buttonState;
-const int x = 5; /*MIGHT NEED TO CHANGE THIS VALUE*/
-int cc;
-int prevTime;
+const int x = 5; //delay time in microseconds before looping again
+unsigned int cc;
 unsigned long loopTime = 0;          // get the time since program started
 unsigned long interruptsTime = 0;    // get the time when free fall event is detected
 int prevSS; //previous switch state
-int lastPrint;
+int lastPrint; //time of last print
 
 //pulse sensor variables
  const unsigned long MICROS_PER_READ = 2 * 1000L;
@@ -45,10 +44,11 @@ int lastPrint;
  //GPS variables
  SoftwareSerial gps(0,1);
  String location;
- String datas;
+ String datas; //info recieved from GPS
  char c;
 
 void setup() {
+  delay(1000); //wait a moment to avoid triggering interrupt
   //initialize inputs and outputs
   pinMode(power, INPUT);
   pinMode(cancel, INPUT);
@@ -59,8 +59,8 @@ void setup() {
   criticalCount = 0;
   digitalWrite(criticalLED, LOW);
   digitalWrite(buzzer, LOW);
-  cc = (30/(x * pow(10, -6))) * 0.9; //90% of the reads taken in 30s
-  prevTime = micros();
+  //cc = 5400000; //90% of the reads taken in 30s
+  cc = 100000; //value for testing purposes
   prevSS = digitalRead(power);
   lastPrint = millis();
 
@@ -84,17 +84,28 @@ void setup() {
 
   //Initialize GPS
   gps.begin(9600);
+  if(wantPrint == HIGH)
+  {
+    Serial.println("Starting The Echidna.");
+    Serial.println();
+  }
 }
 
 void loop() {
   switchState = digitalRead(power);
   if (switchState == LOW) { //if power switch is off
+    if (wantPrint == HIGH)
+    {
+      Serial.println("The Echidna is off. Switch to on to begin operation.");
+      Serial.println();
+      delay(500); //wait a moment if printing
+    }
+    prevSS = switchState;
     return;
   }
 
   if (prevSS == LOW) { //if system was off
     //reset variables
-    prevTime = micros();
     criticalCount = 0;
     digitalWrite(criticalLED, LOW);
     digitalWrite(buzzer, LOW);
@@ -115,7 +126,7 @@ void loop() {
     criticalCount++;
   }
   else {
-    if (criticalCount != 0) {
+    if (criticalCount > 0) {
       criticalCount--;
     }
   }
@@ -197,6 +208,8 @@ void detectFall() { //read accelerometer to detect fall
   //detect freefall
   loopTime = millis();
   if (abs(loopTime - interruptsTime) < 1000 )
+    if(wantPrint == HIGH)
+      Serial.println("free fall detected! ");
     critical();
   else
     return;
@@ -205,8 +218,6 @@ void detectFall() { //read accelerometer to detect fall
 
 static void eventCallback() {
   if (CurieIMU.getInterruptStatus(CURIE_IMU_FREEFALL)) {
-    if(wantPrint == HIGH)
-      Serial.println("free fall detected! ");
     interruptsTime = millis();
   }
 }
@@ -220,7 +231,7 @@ void critical() {
   while (millis() - startTime < (WAIT_TIME * 1000)) {
     buttonState = digitalRead(cancel);
     if (wantPrint == HIGH && millis() - lastPrint >= 1000){
-      Serial.print("CRITICAL ");
+       Serial.println("CRITICAL: Push button if no help is required.\n");
       lastPrint = millis();
     }
     if (buttonState == HIGH) { //if person indicates they are okay
@@ -228,7 +239,11 @@ void critical() {
       digitalWrite(buzzer, LOW);
       criticalCount = 0;
       if (wantPrint == HIGH)
-        Serial.println("\nOKAY\n");
+      {
+        Serial.println("User has indicated that no help is required.");
+        Serial.println("Resuming regular operation.");
+        Serial.println();
+      }
       return;
     }
   }
@@ -244,13 +259,20 @@ void emergencyProcedure() { //user read to be in critical condition
   while(1){
     sendSOS();
     if (wantPrint == HIGH && millis() - lastPrint >= 1000){
-      Serial.print("DANGER ");
+      Serial.println("DANGER: Help is being contacted. Press button if no help is required.");
+      Serial.println();
       lastPrint = millis();
     }
     buttonState = digitalRead(cancel);
     if (buttonState == HIGH) { //if person indicates they are okay
       digitalWrite(buzzer, LOW);
       criticalCount = 0;
+      if (wantPrint == HIGH)
+      {
+        Serial.println("User has indicated that no help is required.");
+        Serial.println("Resuming regular operation.");
+        Serial.println();
+      }
       gps.begin(9600);
       return;
     }
@@ -279,7 +301,7 @@ void parseData(){
   }
 }
 
-void readGPS() { /*THIS MIGHT NEED INPUTS OR SOMETHING*/
+void readGPS() { 
    if(gps.available()){
     c = gps.read();
     //Check to see if there was a newline character
@@ -314,14 +336,18 @@ void sendSOS(){
   int len = message.length();
   message.getBytes(buffer,len);
   for(int i = 0; i < len; ++i){
-    gps.write((char)buffer[i]);
-    Serial.print((char)buffer[i]);
+    gps.write(buffer[i]);
   }
 }
 
 void printForDemo(int heart, int temp) {
-  Serial.println("Heart Rate: " + heart);
-  Serial.println("Temperature: " + temp);
-  Serial.println("Location: " + datas);
+  Serial.print("Heart Rate: ");
+  Serial.println(heart);
+  Serial.print("Temperature: ");
+  Serial.println(temp);
+  Serial.print("Location: ");
+  Serial.println(datas);
+  Serial.print("Critical Count: ");
+  Serial.println(criticalCount);
   Serial.println("");
 }
