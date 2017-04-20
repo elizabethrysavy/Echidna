@@ -1,6 +1,7 @@
 #include <CurieIMU.h>
 #include <PulseSensorBPM.h>
 #include <SoftwareSerial.h>
+#define NOTE 330 //pitch that speaker works at. Can be changed, 330 = E4
 
 //set pin numbers:
 const int power = 7;   //pin number for power switch
@@ -55,12 +56,13 @@ void setup() {
   pinMode(power, INPUT);
   pinMode(cancel, INPUT);
   pinMode(criticalLED, OUTPUT);
-  pinMode(buzzer, OUTPUT);
+  //pinMode(buzzer, OUTPUT); //don't need this anymore for speaker
 
   //initialize variables and states
   criticalCount = 0;
   digitalWrite(criticalLED, LOW);
-  digitalWrite(buzzer, LOW);
+  //digitalWrite(buzzer, LOW); //speaker
+  noTone(buzzer);
   //cc = (30/(x * pow(10, -6))) * 0.9; //90% of the reads taken in 30s
   //cc = 5400000; //this is the actual value for 30 seconds
   cc = 100000; //testing purposes: Lowering time it takes to trigger value
@@ -114,7 +116,8 @@ void loop()
     prevTime = micros();
     criticalCount = 0;
     digitalWrite(criticalLED, LOW);
-    digitalWrite(buzzer, LOW);
+    //digitalWrite(buzzer, LOW); //speaker
+    noTone(buzzer); //turn of speaker
     samplesUntilReport = SAMPLES_PER_SERIAL_SAMPLE;
     lastReportMicros = 0L;
     resetJitter();
@@ -240,7 +243,8 @@ void critical() {
   unsigned long startTime = millis();
   //turn on LED and buzzer
   digitalWrite(criticalLED, HIGH);
-  digitalWrite(buzzer, HIGH);
+  //digitalWrite(buzzer, HIGH); //speaker now
+  tone(buzzer, NOTE);
   while (millis() - startTime < (WAIT_TIME * 1000)) 
   {
     buttonState = digitalRead(cancel);
@@ -251,7 +255,8 @@ void critical() {
     }
     if (buttonState == LOW) { //if person indicates they are okay
       digitalWrite(criticalLED, LOW); //turn of LED and buzzer
-      digitalWrite(buzzer, LOW);
+      //digitalWrite(buzzer, LOW); //speaker now
+      noTone(buzzer);
       criticalCount = 0;
       if (wantPrint == HIGH)
       {
@@ -269,7 +274,8 @@ void critical() {
 
 void emergencyProcedure() { //user read to be in critical condition
   digitalWrite(criticalLED, LOW); //turn off LED to conserve power
-  digitalWrite(buzzer, HIGH); //make sure buzzer is on so person can be located easier
+  //digitalWrite(buzzer, HIGH); //make sure buzzer is on so person can be located easier
+  tone(buzzer, NOTE);
   gps.begin(4800);
   while(1){
     sendSOS();
@@ -280,7 +286,8 @@ void emergencyProcedure() { //user read to be in critical condition
     }
     buttonState = digitalRead(cancel);
     if (buttonState == LOW) { //if person indicates they are okay
-      digitalWrite(buzzer, LOW);
+      //digitalWrite(buzzer, LOW); //speaker now
+      noTone(buzzer);
       criticalCount = 0;
       if (wantPrint == HIGH)
       {
