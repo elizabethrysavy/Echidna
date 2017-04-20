@@ -11,6 +11,8 @@ String message;
 //Used to read in an entire line of GPS data
 String data;
 
+String location;
+
 //Used to read in the available bytes from the receiver
 //as they are available
 char c;
