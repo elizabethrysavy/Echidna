@@ -2,6 +2,14 @@
 #include <PulseSensorBPM.h>
 #include <SoftwareSerial.h>
 
+//buzzer notes
+#define NOTE_E6 1319
+#define NOTE_G6 1568
+#define NOTE_E7 2637
+#define NOTE_C7 2093
+#define NOTE_D7 2349
+#define NOTE_G7 3136
+
 //set pin numbers:
 const int power = 7;   //pin number for power switch
 const int cancel = 8; //pin number for alarm cancel button
@@ -115,6 +123,7 @@ void loop() {
     wantMicros = micros() + MICROS_PER_READ;
     lastPrint = millis();
     gps.begin(9600);
+    startSound();
   }
   prevSS = switchState;
   //read monitors
@@ -207,10 +216,11 @@ bool isCritical(int heart, int temp) {
 void detectFall() { //read accelerometer to detect fall
   //detect freefall
   loopTime = millis();
-  if (abs(loopTime - interruptsTime) < 1000 )
+  if (abs(loopTime - interruptsTime) < 1000 ){
     if(wantPrint == HIGH)
       Serial.println("free fall detected! ");
     critical();
+  }
   else
     return;
 }
@@ -351,3 +361,22 @@ void printForDemo(int heart, int temp) {
   Serial.println(criticalCount);
   Serial.println("");
 }
+
+void startSound(){
+  tone(buzzer,NOTE_E6,125);
+  delay(130);
+  tone(buzzer,NOTE_G6,125);
+  delay(130);
+  tone(buzzer,NOTE_E7,125);
+  delay(130);
+  tone(buzzer,NOTE_C7,125);
+  delay(130);
+  tone(buzzer,NOTE_D7,125);
+  delay(130);
+  tone(buzzer,NOTE_G7,125);
+  delay(125);
+  noTone(buzzer);
+  delay(1000);
+  
+}
+
