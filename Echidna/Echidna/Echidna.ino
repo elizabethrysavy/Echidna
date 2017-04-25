@@ -3,7 +3,7 @@
 #include <SoftwareSerial.h>
 #define NOTE 330 //pitch that speaker works at. Can be changed, 330 = E4
 
-//buzzer notes
+//Notes for start sounds
 #define NOTE_E6 1319
 #define NOTE_G6 1568
 #define NOTE_E7 2637
@@ -27,7 +27,7 @@ const int lowRate = 40; //low critical threshold for pulse
 
 //global variables
 unsigned int criticalCount; //counts number of times user has been in critical range
-const int WAIT_TIME = 10; //seconds to push cancel button after sensors read as critical
+const int WAIT_TIME = 15; //seconds to push cancel button after sensors read as critical
 int switchState; //used to read the on/off switch
 int buttonState; //used to read the cancel button
 const int x = 5; /*MIGHT NEED TO CHANGE THIS VALUE*/ //i don't know what this is.
@@ -79,7 +79,10 @@ void setup() {
   lastPrint = millis();
 
   Serial.begin(9600); // initialize Serial communication
-  while (!Serial) ;   // wait for serial port to connect.
+  if (wantPrint)
+  {
+    while (!Serial) ;   // wait for serial port to connect.
+  }
 
   //Initialise the IMU 
   CurieIMU.begin();
@@ -103,11 +106,18 @@ void setup() {
     Serial.println("Starting The Echidna.");
     Serial.println();
   }
+  switchState = digitalRead(power);
+
+  if(switchState == HIGH) // if power switch is on
+  {
+    startSound();
+  }
 }
 
 void loop() 
 {
   switchState = digitalRead(power);
+
   if (switchState == LOW) { //if power switch is off
     if (wantPrint == HIGH)
     {
@@ -139,7 +149,7 @@ void loop()
   int heart = readHeartMonitor();
   int temp = readTempSensor(); 
   detectFall();
-  readGPS();
+  //readGPS();
   
   if (isCritical(heart, temp) == HIGH) 
   {
@@ -229,18 +239,10 @@ bool isCritical(int heart, int temp) {
 void detectFall() { //read accelerometer to detect fall
   //detect freefall
   loopTime = millis();
-<<<<<<< HEAD
-  if (abs(loopTime - interruptsTime) < 1000 ){
-    if(wantPrint == HIGH)
-      Serial.println("free fall detected! ");
-    critical();
-  }
-=======
   if (abs(loopTime - interruptsTime) < 1000 )
   {
     critical();
   }  
->>>>>>> origin/master
   else
     return;
 }
@@ -293,6 +295,7 @@ void emergencyProcedure() { //user read to be in critical condition
   digitalWrite(criticalLED, LOW); //turn off LED to conserve power
   //digitalWrite(buzzer, HIGH); //make sure buzzer is on so person can be located easier
   tone(buzzer, NOTE);
+  //gps.flush(); //flush previous data from gps
   gps.begin(4800);
   while(1){
     sendSOS();
@@ -312,7 +315,7 @@ void emergencyProcedure() { //user read to be in critical condition
         Serial.println("Resuming regular operation.");
         Serial.println();
       }
-      gps.begin(9600);
+      //gps.begin(9600);
       return;
     }
   }
@@ -328,15 +331,16 @@ void resetJitter()
 
 void parseData(){
   //Check if the line is GPGLL
-  if(data.substring(0, 5) == "GPGLL"){
+  if(data.substring(1, 6) == "GPGLL"){
     //Check if it is East
     if(data.indexOf('E') > 0){
-      location = data.substring(7, data.indexOf('E'));
+      location = data.substring(7, data.indexOf('E') + 1);
     }
     //It is West
     else{
-      location = data.substring(7, data.indexOf('W')); 
+      location = data.substring(7, data.indexOf('W') + 1); 
     }
+
   }
 }
 
@@ -347,13 +351,13 @@ void readGPS() { /*THIS MIGHT NEED INPUTS OR SOMETHING*/
     //Check to see if there was a newline character
     if(c == '\n'){
       parseData();
-      Serial.println("New Line Being Printed");
+      //Serial.println("New Line Being Printed");
       data = "";
     }
     else{
       data += c;
     }
-    Serial.write(c);
+    //Serial.write(c);
     
     /*
     byte buffer[location.length()];
@@ -366,19 +370,17 @@ void readGPS() { /*THIS MIGHT NEED INPUTS OR SOMETHING*/
   }
 
   if(Serial.available()){
-    Serial.println(Serial.read());
+    //Serial.println(Serial.read());
   }
 }
 
 void sendSOS()
 {
-  String message = ".SOS Location is " + location;
-  byte buffer[message.length()];
-  int len = message.length();
-  message.getBytes(buffer,len);
-  for(int i = 0; i < len; ++i)
+  String message = "SOS Location is " + location + "+";
+
+  for(int i = 0; i < message.length(); ++i)
   {
-    gps.write(buffer[i]);
+    gps.write(message[i]);
   }
 }
 
@@ -388,8 +390,7 @@ void printForDemo(int heart, int temp) {
   Serial.print("Temperature: ");
   Serial.println(temp);
   Serial.print("Location: ");
-  Serial.println();
-  //Serial.println(location);
+  Serial.println(location);
   Serial.print("Critical Count: ");
   Serial.println(criticalCount);
   Serial.println("");
@@ -412,4 +413,3 @@ void startSound(){
   delay(1000);
   
 }
-
